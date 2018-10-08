@@ -1,0 +1,18 @@
+{
+  "name": "universe-game",
+  "version": "1.0.0",
+  "description": "WebGl game",
+  "main": "src/index.html",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jonas",
+  "license": "ISC",
+  "devDependencies": {
+    "gulp": "^4.0.0",
+    "browser-sync": "^2.24.4",
+    "gulp-sass": "^4.0.1",
+    "gulp-watch": "^5.0.0",
+    "gulp-autoprefixer": "^5.0.0"
+  }
+}
