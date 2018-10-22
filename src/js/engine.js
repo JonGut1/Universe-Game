@@ -87,6 +87,23 @@ function init() {
 
 	const camera = new Camera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 
+	class World {
+		constructor(size) {
+			this.world = size;
+			this.dt = 1;
+		}
+
+		time(time) {
+			this.dt = time;
+		}
+
+		getTime() {
+			return this.dt;
+		}
+	}
+
+	const world = new World({x: 5000, y: 5000});
+
 	/* planets */
 	class Planets {
 		constructor(radius, wSegments, hSegments, col) {
@@ -95,19 +112,29 @@ function init() {
 			this.planet;
 
 			this.positionCoord = {
-				x: 1.4,
-				y: -1,
+				x: 0,
+				y: 0,
 				z: 0.9,
 			}
 
 			this.positionPixels = {
-				x: 900,
-				y: 400,
+				x: 0,
+				y: 0,
 				z: 0.9,
 			}
 
+			this.globalCoord = {
+				x: 0,
+				y: 0,
+			}
+
 			this.scale = 1;
-			this.speed = 0;
+
+			this.speed = {
+				x: 0,
+				y: 0,
+			};
+
 			this.directions = {
 				x: 0,
 				y: 0,
@@ -144,8 +171,13 @@ function init() {
 		}
 
 		update() {
-			this.planet.position.x = this.positionCoord.x;
-			this.planet.position.y = this.positionCoord.y;
+			this.planet.position.x += (this.speed.x * world.getTime());
+			this.planet.position.y += (this.speed.y * world.getTime());
+
+			this.globalCoord.x += (this.speed.x * world.getTime());
+			this.globalCoord.y += (this.speed.y * world.getTime());
+
+			console.log(this.globalCoord);
 
 			this.planet.rotation.x += 0.001;
 			this.planet.rotation.y += 0.001;
@@ -156,6 +188,18 @@ function init() {
 			console.log('Loaded nav');
 			const body =  document.querySelector('body');
 			body.addEventListener('keydown', (e) => {
+				if (e.keyCode === 37 && this.speed.x !== 0.01) {
+					this.speed.x -= 0.001;
+				}
+				if (e.keyCode === 38 && this.speed.y !== 0.01) {
+					this.speed.y += 0.001;
+				}
+				if (e.keyCode === 39 && this.speed.x !== 0.01) {
+					this.speed.x += 0.001;
+				}
+				if (e.keyCode === 40 && this.speed.y !== 0.01) {
+					this.speed.y -= 0.001;
+				}
 				console.log(e.keyCode);
 			});
 		}
@@ -168,7 +212,6 @@ function init() {
 			vector.unproject(camera.render());
 
 			this.positionCoord = vector;
-			console.log(vector);
 		}
 
 		coordToPixels() {
@@ -181,13 +224,16 @@ function init() {
 		    vector.y = (-vector.y + 1) * window.innerHeight / 2;
 
 		    this.positionPixels = vector;
-		    console.log(vector);
+		}
+
+		spawnLocation() {
+			this.globalCoord.x = Math.random() * (5000 - (-5000)) + (-5000);
+			this.globalCoord.y = Math.random() * (5000 - (-5000)) + (-5000);
+			console.log(this.globalCoord);
 		}
 	}
 
 	const player = new Planets(0.4, 32, 32, 0xFFE933);
-	//player.coordToPixels();
-	player.pixelsToCoord();
 
 	/* loader */
 	class Loader {
@@ -206,11 +252,12 @@ function init() {
 		}
 
 		loadCamera() {
-			camera.setCameraProp('position', 'setZ', (2));
+			camera.setCameraProp('position', 'setZ', (5));
 		}
 
 		loadPlanet() {
 			player.createPlanet();
+			player.spawnLocation();
 			player.render();
 			player.navigationKeyboard();
 		}
@@ -220,13 +267,19 @@ function init() {
 
 	class Animation {
 		constructor() {
-
+			this.last;
+			this.dt;
+			this.now;
 		}
 
 		play() {
+			const now = Date.now();
+			animate.dt = (now - animate.last) / 1000.0;
+            world.getTime(now);
 			requestAnimationFrame(animate.play);
 			renderer.render(scene.render(), camera.render());
 			player.update();
+			animate.last = now;
 		}
 
 		stopPlay() {
