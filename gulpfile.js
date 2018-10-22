@@ -4,7 +4,7 @@ var autoprefixer = require('gulp-autoprefixer');
 var browserSync = require('browser-sync').create();
 
 browserSync.init({
-     server: "src/",
+     server: "dist/",
      browser: ["google chrome"],
      port: 4000
 });
@@ -22,18 +22,21 @@ gulp.task('styles', function(done) {
 	.pipe(autoprefixer({
 		browsers: ['last 2 versions']
 	}))
-	.pipe(gulp.dest('src/css'))
+	.pipe(gulp.dest('dist/css'))
 	browserSync.reload();
 	done()
 });
 
 gulp.task('scripts', function(done) {
+	gulp.src('src/js/*.js')
+    .pipe(gulp.dest('dist/js'))
 	browserSync.reload();
 	done()
 });
 
 gulp.task('copy-html', function(done) {
+	gulp.src('src/*.html')
+	.pipe(gulp.dest('dist'))
 	browserSync.reload();
 	done()
 });
-
