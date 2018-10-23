@@ -1,5 +1,7 @@
 function init() {
 
+	const planets = {};
+
 	/* renders canvas */
 	class Renderer {
 		constructor() {
@@ -108,17 +110,28 @@ function init() {
 
 	const world = new World({x: 5000, y: 5000});
 
+	class Resources {
+		constructor() {
+			this.elements = {
+
+			}
+		}
+	}
+
 	/* planets */
 	class Planets {
 		constructor(radius, wSegments, hSegments, col, size, mass, composition) {
 			this.geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);;
-			this.material = new THREE.MeshBasicMaterial({color: col, wireframe: true});;
-			this.planet;
+			this.material = new THREE.MeshBasicMaterial({color: col});;
+			this.planets = [];
 
 			this.properties = {
 				size: size,
 				mass: mass,
+				radius: radius,
 				composition: {},
+				wSegments: wSegments,
+				hSegments: hSegments,
 			}
 
 			this.positionCoord = {
@@ -138,18 +151,16 @@ function init() {
 				y: 0,
 			}
 
-			this.scale = 1;
-
 			this.speed = {
 				x: 0,
 				y: 0,
 			};
 
-			this.directions = {
+			this.velocity = {
 				x: 0,
 				y: 0,
-				z: 0,
 			}
+
 			this.rotation = {
 				x: 0,
 				y: 0,
@@ -170,49 +181,81 @@ function init() {
 				40: null,
 			}
 
+			/* matrix boundaries */
 			this.matrixBoundaries = {};
 
-			this.boundaries = {};
-
+			/* matrix max size */
 			this.xSize = [];
 			this.ySize = [];
 
+			/* is the planet rendered */
 			this.rendered = false;
 
+			/* is the planet removed */
 			this.removed = false;
 
+			/* whether gravity is activated to this object */
 			this.pull = {
 				37: null,
 				38: null,
 				39: null,
 				40: null,
 			}
+
+			this.randomColorTets = [0xFFAC33, 0x33FF93, 0xFF3333, 0x3380FF, 0xFFFC33];
+			this.cooldown = 0;
+
+			this.insert = true;
 		}
 
-		setSize(planet) {
-			this.geometry = new THREE.SphereGeometry(planet.radius, planet.wSegments, planet.hSegments);
+		/* set initial radius and segments of the planet */
+		setSize(radius, wSegments, hSegments,) {
+			this.geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);
 		}
 
+		/* set planets material */
 		setMaterial(color) {
 			this.material = new THREE.MeshBasicMaterial({color: color});
 		}
 
+		/* create a planet */
 		createPlanet() {
 			this.planet = new THREE.Mesh(this.geometry, this.material);
 		}
 
+		/* set position of the planet */
 		setPosition() {
 			this.planet.position.x = this.positionCoord.x;
 			this.planet.position.y = this.positionCoord.y;
 		}
 
+		/* set planet properties */
+		setProperties(type, value) {
+			this.properties[type] = value;
+		}
+
+		setScale(num, sign, plan) {
+			console.log(num, sign, plan);
+			if (plan.geometry.scale.x > num && sign === '-') {
+				plan.geometry.scale.x -= 0.05;
+				plan.geometry.scale.y -= 0.05;
+				plan.geometry.scale.z -= 0.05;
+			} else if (plan.geometry.scale.x < num && sign === '+') {
+				plan.geometry.scale.x += 0.05;
+				plan.geometry.scale.y += 0.05;
+				plan.geometry.scale.z += 0.05;
+			}
+		}
+
+		/* render a planet */
 		render() {
-			console.log(scene);
 			scene.add(this.planet);
 		}
 
+		/* check whether a planet has to be rendered */
 		renderCheck() {
-			if (Math.abs(this.positionCoord.x) < 4 && Math.abs(this.positionCoord.y) < 4) {
+			const maxCoord = this.pixelsToCoord(window.innerWidth, 0, 1);
+			if (Math.abs(this.positionCoord.x) < maxCoord.x * 2 && Math.abs(this.positionCoord.y) < maxCoord.y * 2) {
 				if (this.rendered === true) {
 					return true;
 				}
@@ -220,44 +263,17 @@ function init() {
 				this.rendered = true;
 				return true;
 			} else {
-				console.log();
 				this.rendered = false;
 			}
 		}
 
-		setProperties(type, value) {
-			this.properties[type] = value;
-		}
-
+		/* remove a planet */
 		remove() {
 			scene.remove(this.planet);
 			this.removed = true;
 		}
 
-		addSpeedPlanets() {
-			/* gravity pull */
-			if (this.pull[37]) {
-				if (this.speed.x > -0.01) {
-					this.speed.x -= 0.0001;
-				}
-			}
-			if (this.pull[38]) {
-				if (this.speed.y < 0.01) {
-					this.speed.y += 0.0001;
-				}
-			}
-			if (this.pull[39]) {
-				if (this.speed.x < 0.01) {
-					this.speed.x += 0.0001;
-				}
-			}
-			if (this.pull[40]) {
-				if (this.speed.y > -0.01) {
-					this.speed.y -= 0.0001;
-				}
-			}
-		}
-
+		/* adds velocity to the planets and player */
 		addSpeed() {
 			/* arrow navigation */
 			if (this.pressedKeys[37]) {
@@ -281,46 +297,22 @@ function init() {
 				}
 			}
 
-			/* gravity pull */
-			if (this.pull[37]) {
-				if (this.speed.x > -0.01) {
-					this.speed.x -= 0.0001;
-				}
-			}
-			if (this.pull[38]) {
-				if (this.speed.y < 0.01) {
-					this.speed.y += 0.0001;
-				}
-			}
-			if (this.pull[39]) {
-				if (this.speed.x < 0.01) {
-					this.speed.x += 0.0001;
-				}
-			}
-			if (this.pull[40]) {
-				if (this.speed.y > -0.01) {
-					this.speed.y -= 0.0001;
-				}
-			}
+			this.speed.x += this.velocity.x;
+			this.speed.y += this.velocity.y;
 		}
 
 		updatePlayer() {
+			this.gravity();
 			this.addSpeed();
 
 			this.globalCoord.x += (this.speed.x * world.getTime());
 			this.globalCoord.y += (this.speed.y * world.getTime());
 
 			this.calculateBoundaries();
-
-			//console.log(this.globalCoord);
-			//console.log(this.pressedKeys);
-
-			//this.planet.rotation.x += 0.001;
-			this.planet.rotation.y += 0.001;
-			this.planet.rotation.z += 0.001;
 		}
 
 		updatePlanet() {
+			//console.log('Diferrence', this.globalCoord.x - planets.player.globalCoord.x);
 			this.gravity();
 			this.addSpeed();
 
@@ -377,6 +369,8 @@ function init() {
 			vector.y = -((vector.y) / (window.innerHeight / 2) - 1);
 
 			vector.unproject(camera.render());
+
+			return vector;
 		}
 
 		coordToPixels() {
@@ -392,74 +386,79 @@ function init() {
 		}
 
 		globalCoordToMatrixCoord(coordX, coordY) {
-			const x = coordX - player.globalCoord.x;
-			const y = coordY - player.globalCoord.y;
+			const x = coordX - planets.player.globalCoord.x;
+			const y = coordY - planets.player.globalCoord.y;
 			this.positionCoord.x = x;
 			this.positionCoord.y = y;
 		}
 
 		calculateBoundaries() {
-			this.matrixBoundaries.x = [player.globalCoord.x - this.xSize[0], player.globalCoord.x + this.xSize[1]];
-			this.matrixBoundaries.y = [player.globalCoord.y - this.ySize[0], player.globalCoord.y + this.ySize[1]];
+			this.matrixBoundaries.x = [planets.player.globalCoord.x - this.xSize[0], planets.player.globalCoord.x + this.xSize[1]];
+			this.matrixBoundaries.y = [planets.player.globalCoord.y - this.ySize[0], planets.player.globalCoord.y + this.ySize[1]];
 			//console.log(this.matrixBoundaries);
 		}
 
 		checkMatrixSize() {
-			this.pixelsToCoord(window.innerWidth, window.innerHeight, 0.9);
 			this.xSize = [Math.abs(this.positionCoord.x), (Math.abs(this.positionCoord.x))];
 			this.ySize = [Math.abs(this.positionCoord.y), (Math.abs(this.positionCoord.y))]
 		}
 
 		spawnLocation() {
-			this.globalCoord.x = Math.random() * (5 - (-5)) + (-5);
-			this.globalCoord.y = Math.random() * (5 - (-5)) + (-5);
+			this.globalCoord.x = Math.random() * (30 - (-30)) + (-30);
+			this.globalCoord.y = Math.random() * (30 - (-30)) + (-30);
 			console.log(this.globalCoord);
 		}
 
-		collision() {
+		collision(center, plan) {
+			if (center < plan.properties.radius + this.properties.radius) {
+				if (this.properties.mass > plan.properties.mass) {
+					this.setScale(plan.properties.mass, '+', this);
+				} else if (this.properties.mass > plan.properties.mass) {
+					this.setScale(plan.properties.mass, '+', plan);
+				} else if (this.properties.mass === plan.properties.mass) {
+					const rand = [plan, this];
+					this.setScale(rand[Math.floor(Math.random() * 1)].properties.mass, '+', rand[Math.floor(Math.random() * 1)]);
+				}
+				if (this.planet.scale.x <= 0) {
+					this.remove();
+					delete planets[this];
+				}
+			}
+		}
 
+		shatterPlanet(num) {
+			if (planets.length < num) {
+				for (let i = 0; i < 10; i++) {
+					planets.push(new Planets(0.2, 6, 6, 0xFF3333, 1, 5));
+				}
+			}
+
+
+			console.log(planets);
 		}
 
 		gravity() {
-			console.log(this.globalCoord.x, player.globalCoord.x);
-			if (this !== player && this.positionCoord.x < 7 && this.positionCoord.y < 7) {
-				if (this.positionCoord.x > player.positionCoord.x) {
-					this.pull[37] = true;
-					this.pull[39] = null;
-
-					player.pull[39] = true;
-					player.pull[37] = null;
-				}
-
-				if (this.positionCoord.x < player.positionCoord.x) {
-					this.pull[39] = true;
-					this.pull[37] = null;
-
-					player.pull[37] = true;
-					player.pull[39] = null;
-				}
-
-				if (this.positionCoord.y > player.positionCoord.y) {
-					this.pull[40] = true;
-					this.pull[38] = null;
-
-					player.pull[38] = true;
-					player.pull[40] = null;
-				}
-
-				if (this.positionCoord.y < player.positionCoord.y) {
-					this.pull[38] = true;
-					this.pull[40] = null;
-
-					player.pull[40] = true;
-					player.pull[38] = null;
+			for (let plan in planets) {
+				//const x = this.positionCoord.x - planets[plan].positionCoord.x;
+	        	//const y = this.positionCoord.y - planets[plan].positionCoord.y;
+	        	//const center = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+	        	console.log(this.globalCoord.x, this.globalCoord.y);
+				if (planets[plan] !== this && this.velocity.x < 0.001 && this.velocity.x > -0.001 && this.velocity.y < 0.001 && this.velocity.y > -0.001) {
+					const velX = (planets[plan].positionCoord.x - (this.positionCoord.x));
+					const velY = (planets[plan].positionCoord.y - (this.positionCoord.y));
+					if (velX > -10 && velX < 10 && velY > -10 && velY < 10) {
+						this.velocity.x = velX * 0.00001;
+						this.velocity.y = velY * 0.00001;
+					}
 				}
 			}
 		}
 	}
 
-	const player = new Planets(0.4, 32, 32, 0xFFE933, 1, 10);
-	const planet = new Planets(0.2, 32, 32, 0xFFFFFF, 1, 5);
+	planets.player = new Planets(0.5, 24, 24, 0xFFE933, 1, 10);
+	planets.planet1 = (new Planets(0.3, 24, 24, 0xFF3333, 1, 5));
+	//planets.planet2 = (new Planets(0.2, 24, 24, 0xFF3333, 1, 5));
+
 
 	class UI {
 		constructor() {
@@ -468,13 +467,13 @@ function init() {
 		}
 
 		createCoordinatesUI() {
-			this.body.insertAdjacentHTML('afterbegin', `<div id="player-coordinates"><p>lat - ( ${player.globalCoord.x} )</p><p>lng - ( ${player.globalCoord.y} )</p></div>`);
+			this.body.insertAdjacentHTML('afterbegin', `<div id="player-coordinates"><p>lat - ( ${planets.player.globalCoord.x} )</p><p>lng - ( ${planets.player.globalCoord.y} )</p></div>`);
 		}
 
 		update() {
 			this.coordinatesMarker = document.querySelector('#player-coordinates');
-			this.coordinatesMarker.children[0].textContent = `lat - ( ${player.globalCoord.x} )`;
-			this.coordinatesMarker.children[1].textContent = `lng - ( ${player.globalCoord.y} )`;
+			this.coordinatesMarker.children[0].textContent = `lat - ( ${planets.player.globalCoord.x} )`;
+			this.coordinatesMarker.children[1].textContent = `lng - ( ${planets.player.globalCoord.y} )`;
 
 		}
 	}
@@ -498,19 +497,27 @@ function init() {
 		}
 
 		loadCamera() {
-			camera.setCameraProp('position', 'setZ', (5));
+			camera.setCameraProp('position', 'setZ', (15));
 		}
 
 		loadPlanet() {
-			player.createPlanet();
-			player.spawnLocation();
-			player.render();
-			player.navigationKeyboard();
-			player.coordToPixels();
-			player.checkMatrixSize();
+			planets.player.createPlanet();
+			planets.player.spawnLocation();
+			planets.player.render();
+			planets.player.navigationKeyboard();
+			planets.player.coordToPixels();
+			planets.player.checkMatrixSize();
 
-			planet.createPlanet();
-			planet.spawnLocation();
+			for (let plan in planets) {
+				planets[plan].createPlanet();
+				planets[plan].spawnLocation();
+			}
+
+
+
+
+			//planet2.createPlanet();
+			//planet2.spawnLocation();
 		}
 
 		loadUI() {
@@ -534,9 +541,15 @@ function init() {
 			requestAnimationFrame(animate.play);
 			renderer.render(scene.render(), camera.render());
 
-			player.updatePlayer();
+			planets.player.updatePlayer();
 
-			planet.updatePlanet();
+			for (let plan in planets) {
+				if (plan !== 'player') {
+					planets[plan].updatePlanet();
+				}
+			}
+
+			//planet2.updatePlanet();
 
 			ui.update();
 
