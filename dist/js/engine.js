@@ -75,10 +75,13 @@ function init() {
 	class Camera {
 		constructor(fov, ratio, near, far) {
 			this.camera = new THREE.PerspectiveCamera(fov, ratio, near, far);
+			this.zoom = 1;
 		}
 
 		setCameraProp(type, action, value) {
 			this.camera[type][action](value);
+			this.camera.updateProjectionMatrix();
+			this.zoom = value;
 		}
 
 		render() {
@@ -269,10 +272,12 @@ function init() {
 		/* check whether a planet has to be rendered */
 		renderCheck() {
 			const boundaries = planets.player.screenBoundaries.matrix;
-				if (boundaries.x[0] * 1 < this.planetCoordinates.matrix.x && boundaries.x[1] * 1 > this.planetCoordinates.matrix.x || boundaries.y[0] * 1 < this.planetCoordinates.matrix.y && boundaries.y[1] * 1 > this.planetCoordinates.matrix.y) {
+				if (boundaries.x[0] < this.planetCoordinates.matrix.x && boundaries.x[1] > this.planetCoordinates.matrix.x && boundaries.y[0] < this.planetCoordinates.matrix.y && boundaries.y[1] > this.planetCoordinates.matrix.y) {
 					if (this.planetData.rendered === null) {
 						console.log('add...............................................');
 						this.render();
+					} else {
+						return;
 					}
 				} else {
 					if (this.planetData.rendered === true) {
@@ -385,8 +390,8 @@ function init() {
 			const leftUpperMatrix = this.pixelsToMatrix(0, 0, 0.9);
 			const positionCoordX = Math.abs(leftUpperMatrix.x);
 			const positionCoordY = Math.abs(leftUpperMatrix.y);
-			const xBoundries = [this.planetCoordinates.matrix.x - positionCoordX, this.planetCoordinates.matrix.x + positionCoordX];
-			const yBoundries = [this.planetCoordinates.matrix.y - positionCoordY, this.planetCoordinates.matrix.y + positionCoordY];
+			const xBoundries = [(this.planetCoordinates.matrix.x - positionCoordX) * (camera.zoom / 2), (this.planetCoordinates.matrix.x + positionCoordX) * (camera.zoom / 2)];
+			const yBoundries = [(this.planetCoordinates.matrix.y - positionCoordY ) * (camera.zoom / 2), (this.planetCoordinates.matrix.y + positionCoordY) * (camera.zoom / 2)];
 			this.screenBoundaries.matrix = {x: xBoundries, y: yBoundries};
 			console.log(this.screenBoundaries.matrix);
 		}
@@ -429,8 +434,13 @@ function init() {
 	const planetsArr = [];
 
 	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFFE933}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));		// radius, wSegments, hSegments, material, mass, composition, speed, velocity
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet1'));
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet2'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.3, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet1'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.3, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet2'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet3'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet4'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet5'));
+	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFF3333}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet6'));
+
 
 	function insertPlanetsIntoObj(insert) {
 		insert.forEach((planet) => {
@@ -526,8 +536,6 @@ function init() {
 					planets[plan].updatePlanet();
 				}
 			}
-
-			//planet2.updatePlanet();
 
 			ui.update();
 
