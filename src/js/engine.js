@@ -404,8 +404,8 @@ function init() {
 		}
 
 		spawnLocation() {
-			this.globalCoord.x = Math.random() * (30 - (-30)) + (-30);
-			this.globalCoord.y = Math.random() * (30 - (-30)) + (-30);
+			this.globalCoord.x = Math.random() * (10 - (-10)) + (-10);
+			this.globalCoord.y = Math.random() * (10 - (-10)) + (-10);
 			console.log(this.globalCoord);
 		}
 
@@ -438,27 +438,33 @@ function init() {
 		}
 
 		gravity() {
+			let velX = 0;
+			let velY = 0;
+			let posX;
+			let posY;
 			for (let plan in planets) {
 				//const x = this.positionCoord.x - planets[plan].positionCoord.x;
 	        	//const y = this.positionCoord.y - planets[plan].positionCoord.y;
 	        	//const center = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-	        	console.log(this.globalCoord.x, this.globalCoord.y);
-				if (planets[plan] !== this && this.velocity.x < 0.001 && this.velocity.x > -0.001 && this.velocity.y < 0.001 && this.velocity.y > -0.001) {
-					const velX = (planets[plan].positionCoord.x - (this.positionCoord.x));
-					const velY = (planets[plan].positionCoord.y - (this.positionCoord.y));
-					if (velX > -10 && velX < 10 && velY > -10 && velY < 10) {
-						this.velocity.x = velX * 0.00001;
-						this.velocity.y = velY * 0.00001;
-					}
+	        	//console.log(this.velocity.x);
+				if (planets[plan] !== this && this.velocity.x < 0.01 && this.velocity.x > -0.01 && this.velocity.y < 0.01 && this.velocity.y > -0.01) {
+					posX = (planets[plan].positionCoord.x - this.positionCoord.x) * planets[plan].properties.mass;
+					posY = (planets[plan].positionCoord.y - this.positionCoord.y) * planets[plan].properties.mass;
+					velX = velX + (posX * 0.0001);
+					velY = velY + (posY * 0.0001);
 				}
 			}
+			this.velocity.x = velX;
+			this.velocity.y = velY;
+			console.log(posX, posY);
+
 		}
 	}
 
-	planets.player = new Planets(0.5, 24, 24, 0xFFE933, 1, 10);
-	planets.planet1 = (new Planets(0.3, 24, 24, 0xFF3333, 1, 5));
-	//planets.planet2 = (new Planets(0.2, 24, 24, 0xFF3333, 1, 5));
-
+	planets.player = new Planets(0.5, 24, 24, 0xFFE933, 1, 1);
+	planets.planet1 = (new Planets(0.3, 24, 24, 0xFF3333, 1, 1));
+	planets.planet2 = (new Planets(0.7, 24, 24, 0xFF3333, 1, 10));
+	planets.planet3 = (new Planets(0.3, 24, 24, 0xFF3333, 1, 1));
 
 	class UI {
 		constructor() {
@@ -497,7 +503,7 @@ function init() {
 		}
 
 		loadCamera() {
-			camera.setCameraProp('position', 'setZ', (15));
+			camera.setCameraProp('position', 'setZ', (20));
 		}
 
 		loadPlanet() {
