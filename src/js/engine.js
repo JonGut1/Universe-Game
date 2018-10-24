@@ -413,33 +413,37 @@ function init() {
 				let posX;
 				let posY;
 				for (let plan in planets) {
-					//this.collision(planets[plan]);
-					if (planets[plan] !== this && this.properties.velocity.x < 0.01 && this.properties.velocity.x > -0.01 && this.properties.velocity.y < 0.01 && this.properties.velocity.y > -0.01) {
-						posX = (planets[plan].planetCoordinates.global.x - this.planetCoordinates.global.x) * planets[plan].properties.mass;
-						posY = (planets[plan].planetCoordinates.global.y - this.planetCoordinates.global.y) * planets[plan].properties.mass;
-						velX = velX + (posX * 0.0001);
-						velY = velY + (posY * 0.0001);
-					}
+					const x = this.planetCoordinates.global.x - planets[plan].planetCoordinates.global.x;
+        			const y = this.planetCoordinates.global.y - planets[plan].planetCoordinates.global.y;
+        			const center = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+
+        			if (planets[plan] !== this && center <  this.properties.mass * 100) {
+        				if (this.properties.velocity.x < 0.01 && this.properties.velocity.x > -0.01 && this.properties.velocity.y < 0.01 && this.properties.velocity.y > -0.01) {
+							posX = (planets[plan].planetCoordinates.global.x - this.planetCoordinates.global.x) * planets[plan].properties.mass;
+							posY = (planets[plan].planetCoordinates.global.y - this.planetCoordinates.global.y) * planets[plan].properties.mass;
+							velX = velX + (posX * 0.0001);
+							velY = velY + (posY * 0.0001);
+						}
+        			}
 				}
 				this.properties.velocity.x = velX;
 				this.properties.velocity.y = velY;
 				clearInterval(int);
 			}, 0);
-
-
-
 		}
 	}
 
 	const planetsArr = [];
 
-	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFFE933}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));		// radius, wSegments, hSegments, material, mass, composition, speed, velocity
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.3, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet1'));
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.3, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet2'));
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet3'));
+	// radius, wSegments, hSegments, material, mass, composition, speed, velocity
+
+	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFFE933}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet1'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet2'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet3'));
 	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet4'));
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet5'));
-	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFF3333}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet6'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet5'));
+	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFF3333}, 0.3, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet6'));
 
 
 	function insertPlanetsIntoObj(insert) {
