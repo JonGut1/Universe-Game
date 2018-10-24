@@ -53,7 +53,6 @@ function init() {
 
 		add(obj) {
 			this.scene.add(obj);
-			console.log(obj);
 		}
 
 		remove(obj) {
@@ -120,113 +119,98 @@ function init() {
 
 	/* planets */
 	class Planets {
-		constructor(radius, wSegments, hSegments, col, size, mass, composition) {
-			this.geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);;
-			this.material = new THREE.MeshBasicMaterial({color: col});;
-			this.planets = [];
+		constructor(radius, wSegments, hSegments, material, mass, composition, speed, velocity, id) {
+			this.planet;					// created planet
 
-			this.properties = {
-				size: size,
-				mass: mass,
-				radius: radius,
-				composition: {},
-				wSegments: wSegments,
-				hSegments: hSegments,
-			}
-
-			this.positionCoord = {
-				x: 0,
-				y: 0,
-				z: 0.9,
-			}
-
-			this.positionPixels = {
-				x: 0,
-				y: 0,
-				z: 0.9,
-			}
-
-			this.globalCoord = {
-				x: 0,
-				y: 0,
-			}
-
-			this.speed = {
-				x: 0,
-				y: 0,
+			this.planetData = {
+				id: id,
+				rendered: null,
+				spawned: null,
 			};
 
-			this.velocity = {
-				x: 0,
-				y: 0,
+			this.geometry;					// planet geometry
+			this.material;					// planet mesh
+
+			/* planet properties */
+			this.properties = {
+				speed: speed,				// speed
+				velocity: velocity,			// velocity
+				mass: mass,					// mass
+				radius: radius,
+				material: material,			// initial radius
+				composition: composition,	// planet composition
+				wSegments: wSegments,		// width vertices
+				hSegments: hSegments,		// height vertices
 			}
 
-			this.rotation = {
-				x: 0,
-				y: 0,
-				z: 0,
+			/* planet coordinates */
+			this.planetCoordinates = {
+				global: { 					// global coordinates
+					x: 0,
+					y: 0,
+					z: 0.9,
+				},
+				pixel: { 					// screen pixel coordinates
+					x: 0,
+					y: 0,
+					z: 0.9,
+				},
+				matrix: { 					// matrix coordinates
+					x: 0,
+					y: 0,
+					z: 0.9,
+				}
 			}
 
-			this.keys = {
-				37: 'left',
-				38: 'up',
-				39: 'right',
-				40: 'down',
-			}
-
-			this.pressedKeys = {
-				37: null,
-				38: null,
-				39: null,
-				40: null,
+			/* keyboard navigation */
+			this.keyboardNavigation = {
+				keys: {
+					37: 'left', 			// left
+					38: 'up',				// up
+					39: 'right',			// right
+					40: 'down', 			// down
+				},
+				pressedKeys: {
+					37: null,				// left
+					38: null,				// up
+					39: null,				// right
+					40: null,				// down
+				}
 			}
 
 			/* matrix boundaries */
-			this.matrixBoundaries = {};
-
-			/* matrix max size */
-			this.xSize = [];
-			this.ySize = [];
-
-			/* is the planet rendered */
-			this.rendered = false;
-
-			/* is the planet removed */
-			this.removed = false;
-
-			/* whether gravity is activated to this object */
-			this.pull = {
-				37: null,
-				38: null,
-				39: null,
-				40: null,
+			this.screenBoundaries ={
+				matrix: {},
 			}
-
-			this.randomColorTets = [0xFFAC33, 0x33FF93, 0xFF3333, 0x3380FF, 0xFFFC33];
-			this.cooldown = 0;
-
-			this.insert = true;
 		}
 
+		/* ----------------------------- init planet create (START) ----------------------------- */
+
 		/* set initial radius and segments of the planet */
-		setSize(radius, wSegments, hSegments,) {
-			this.geometry = new THREE.SphereGeometry(radius, wSegments, hSegments);
+		setSize(radius = this.properties.radius, wSegment = this.properties.wSegments, hSegment = this.properties.hSegments,) {
+			this.geometry = new THREE.SphereGeometry(radius, wSegment, hSegment);
 		}
 
 		/* set planets material */
-		setMaterial(color) {
+		setMaterial(color = this.properties.material.color) {
 			this.material = new THREE.MeshBasicMaterial({color: color});
 		}
 
 		/* create a planet */
 		createPlanet() {
 			this.planet = new THREE.Mesh(this.geometry, this.material);
+			console.log(this.planet);
+			this.planetData.spawned = true;
 		}
 
+		/* ----------------------------- init planet create (END) ----------------------------- */
+
+		/* ----------------------------- manipulate planet properties (START) ----------------------------- */
+
 		/* set position of the planet */
-		setPosition() {
-			this.planet.position.x = this.positionCoord.x;
-			this.planet.position.y = this.positionCoord.y;
+		setPosition(positionX = this.planetCoordinates.matrix.x, positionY = this.planetCoordinates.matrix.y) {
+			this.planet.position.x = positionX;
+			this.planet.position.y = positionY;
 		}
 
 		/* set planet properties */
@@ -234,237 +218,226 @@ function init() {
 			this.properties[type] = value;
 		}
 
-		setScale(num, sign, plan) {
-			console.log(num, sign, plan);
-			if (plan.geometry.scale.x > num && sign === '-') {
-				plan.geometry.scale.x -= 0.05;
-				plan.geometry.scale.y -= 0.05;
-				plan.geometry.scale.z -= 0.05;
-			} else if (plan.geometry.scale.x < num && sign === '+') {
-				plan.geometry.scale.x += 0.05;
-				plan.geometry.scale.y += 0.05;
-				plan.geometry.scale.z += 0.05;
-			}
+		setScale() {
+
 		}
+
+		/* adds speed to the planets and player */
+		addSpeed() {
+			/* arrow navigation */
+			if (this.keyboardNavigation.pressedKeys[37]) {
+				if (this.properties.speed.x > -0.1) {
+					this.properties.speed.x -= 0.01;
+				}
+			}
+			if (this.keyboardNavigation.pressedKeys[38]) {
+				if (this.properties.speed.y < 0.1) {
+					this.properties.speed.y += 0.01;
+				}
+			}
+			if (this.keyboardNavigation.pressedKeys[39]) {
+				if (this.properties.speed.x < 0.1) {
+					this.properties.speed.x += 0.01;
+				}
+			}
+			if (this.keyboardNavigation.pressedKeys[40]) {
+				if (this.properties.speed.y > -0.1) {
+					this.properties.speed.y -= 0.01;
+				}
+			}
+
+			this.properties.speed.x += this.properties.velocity.x;
+			this.properties.speed.y += this.properties.velocity.y;
+		}
+
+		spawnLocation() {
+			this.planetCoordinates.global.x = Math.random() * (20 - (-20)) + (-20);
+			this.planetCoordinates.global.y = Math.random() * (20 - (-20)) + (-20);
+			console.log(this.planetCoordinates);
+		}
+
+		/* ----------------------------- manipulate planet properties (END) ----------------------------- */
+
+		/* ----------------------------- planet render options (START) ----------------------------- */
 
 		/* render a planet */
 		render() {
 			scene.add(this.planet);
+			this.planetData.rendered = true;
 		}
 
 		/* check whether a planet has to be rendered */
 		renderCheck() {
-			const maxCoord = this.pixelsToCoord(window.innerWidth, 0, 1);
-			if (Math.abs(this.positionCoord.x) < maxCoord.x * 2 && Math.abs(this.positionCoord.y) < maxCoord.y * 2) {
-				if (this.rendered === true) {
-					return true;
+			const boundaries = planets.player.screenBoundaries.matrix;
+				if (boundaries.x[0] * 1 < this.planetCoordinates.matrix.x && boundaries.x[1] * 1 > this.planetCoordinates.matrix.x || boundaries.y[0] * 1 < this.planetCoordinates.matrix.y && boundaries.y[1] * 1 > this.planetCoordinates.matrix.y) {
+					if (this.planetData.rendered === null) {
+						console.log('add...............................................');
+						this.render();
+					}
+				} else {
+					if (this.planetData.rendered === true) {
+						console.log('remove...............................................');
+						this.renderRemove();
+					}
 				}
-				this.render();
-				this.rendered = true;
-				return true;
-			} else {
-				this.rendered = false;
-			}
 		}
 
 		/* remove a planet */
-		remove() {
+		renderRemove() {
 			scene.remove(this.planet);
-			this.removed = true;
+			this.planetData.rendered = null;
 		}
 
-		/* adds velocity to the planets and player */
-		addSpeed() {
-			/* arrow navigation */
-			if (this.pressedKeys[37]) {
-				if (this.speed.x > -0.01) {
-					this.speed.x -= 0.001;
-				}
-			}
-			if (this.pressedKeys[38]) {
-				if (this.speed.y < 0.01) {
-					this.speed.y += 0.001;
-				}
-			}
-			if (this.pressedKeys[39]) {
-				if (this.speed.x < 0.01) {
-					this.speed.x += 0.001;
-				}
-			}
-			if (this.pressedKeys[40]) {
-				if (this.speed.y > -0.01) {
-					this.speed.y -= 0.001;
-				}
-			}
+		/* ----------------------------- planet render options (END) ----------------------------- */
 
-			this.speed.x += this.velocity.x;
-			this.speed.y += this.velocity.y;
-		}
+		/* ----------------------------- in animation loop functions (START) ----------------------------- */
 
 		updatePlayer() {
 			this.gravity();
 			this.addSpeed();
 
-			this.globalCoord.x += (this.speed.x * world.getTime());
-			this.globalCoord.y += (this.speed.y * world.getTime());
-
-			this.calculateBoundaries();
+			this.planetCoordinates.global.x += (this.properties.speed.x * world.getTime());
+			this.planetCoordinates.global.y += (this.properties.speed.y * world.getTime());
 		}
 
 		updatePlanet() {
-			//console.log('Diferrence', this.globalCoord.x - planets.player.globalCoord.x);
 			this.gravity();
 			this.addSpeed();
 
-			this.globalCoord.x += (this.speed.x * world.getTime());
-			this.globalCoord.y += (this.speed.y * world.getTime());
+			this.planetCoordinates.global.x += (this.properties.speed.x * world.getTime());
+			this.planetCoordinates.global.y += (this.properties.speed.y * world.getTime());
 
-			this.globalCoordToMatrixCoord(this.globalCoord.x, this.globalCoord.y);
-			if (this.renderCheck() === true) {
-				this.removed = false;
-				this.setPosition();
-			} else {
-				if (this.removed === false) {
-					this.remove();
-				}
-			}
+			this.planetCoordinates.matrix = this.globalCoordToMatrixCoord(this.planetCoordinates.global.x, this.planetCoordinates.global.y);
+
+			this.setPosition();
+
+			this.renderCheck();
 		}
+
+		/* ----------------------------- in animation loop functions (END) ----------------------------- */
+
+		/* ----------------------------- player navigation controlls (START) ----------------------------- */
 
 		navigationKeyboard() {
 			const body =  document.querySelector('body');
 			body.addEventListener('keydown', (e) => {
 				if (e.keyCode === 37) {
-					this.pressedKeys[37] = true;
+					this.keyboardNavigation.pressedKeys[37] = true;
 				}
 				if (e.keyCode === 38) {
-					this.pressedKeys[38] = true;
+					this.keyboardNavigation.pressedKeys[38] = true;
 				}
 				if (e.keyCode === 39) {
-					this.pressedKeys[39] = true;
+					this.keyboardNavigation.pressedKeys[39] = true;
 				}
 				if (e.keyCode === 40) {
-					this.pressedKeys[40] = true;
+					this.keyboardNavigation.pressedKeys[40] = true;
 				}
 			});
 
 			body.addEventListener('keyup', (e) => {
 				if (e.keyCode === 37) {
-					this.pressedKeys[37] = null;
+					this.keyboardNavigation.pressedKeys[37] = null;
 				}
 				if (e.keyCode === 38) {
-					this.pressedKeys[38] = null;
+					this.keyboardNavigation.pressedKeys[38] = null;
 				}
 				if (e.keyCode === 39) {
-					this.pressedKeys[39] = null;
+					this.keyboardNavigation.pressedKeys[39] = null;
 				}
 				if (e.keyCode === 40) {
-					this.pressedKeys[40] = null;
+					this.keyboardNavigation.pressedKeys[40] = null;
 				}
 			});
 		}
 
-		pixelsToCoord(positionX = this.positionPixels.x, positionY = this.positionPixels.y, positionZ = this.positionPixels.z) {
+		/* ----------------------------- player navigation controlls (END) ----------------------------- */
+
+		/* ----------------------------- calculating coordinates (START) ----------------------------- */
+
+		pixelsToMatrix(positionX = this.planetCoordinates.pixel.x, positionY = this.planetCoordinates.pixel.y, positionZ = this.planetCoordinates.pixel.z) {
 			const vector = new THREE.Vector3(positionX, positionY, positionZ);
 			vector.x = ((vector.x) / (window.innerWidth / 2) - 1);
 			vector.y = -((vector.y) / (window.innerHeight / 2) - 1);
-
 			vector.unproject(camera.render());
-
 			return vector;
 		}
 
-		coordToPixels() {
-			const vector = new THREE.Vector3(this.positionCoord.x, this.positionCoord.y, this.positionCoord.z);
-			console.log(camera.render());
-
+		matrixToPixels() {
+			const vector = new THREE.Vector3(this.planetCoordinates.matrix.x, this.planetCoordinates.matrix.y, this.planetCoordinates.matrix.z);
 		    vector.project(camera.render());
-
 		    vector.x = (vector.x + 1) * window.innerWidth / 2;
 		    vector.y = (-vector.y + 1) * window.innerHeight / 2;
-
-		    this.positionPixels = vector;
+		    return vector;
 		}
 
-		globalCoordToMatrixCoord(coordX, coordY) {
-			const x = coordX - planets.player.globalCoord.x;
-			const y = coordY - planets.player.globalCoord.y;
-			this.positionCoord.x = x;
-			this.positionCoord.y = y;
+		globalCoordToMatrixCoord(planetCoordX, planetCoordY) {
+			const x = planetCoordX - planets.player.planetCoordinates.global.x;
+			const y = planetCoordY - planets.player.planetCoordinates.global.y;
+			return {x: x, y: y};
 		}
 
-		calculateBoundaries() {
-			this.matrixBoundaries.x = [planets.player.globalCoord.x - this.xSize[0], planets.player.globalCoord.x + this.xSize[1]];
-			this.matrixBoundaries.y = [planets.player.globalCoord.y - this.ySize[0], planets.player.globalCoord.y + this.ySize[1]];
-			//console.log(this.matrixBoundaries);
+		/* ----------------------------- calculating coordinates (END) ----------------------------- */
+
+		/* ----------------------------- calculating screen and matrix dimensions (START) ----------------------------- */
+
+		calculateRenderBoundaries() {
+			const leftUpperMatrix = this.pixelsToMatrix(0, 0, 0.9);
+			const positionCoordX = Math.abs(leftUpperMatrix.x);
+			const positionCoordY = Math.abs(leftUpperMatrix.y);
+			const xBoundries = [this.planetCoordinates.matrix.x - positionCoordX, this.planetCoordinates.matrix.x + positionCoordX];
+			const yBoundries = [this.planetCoordinates.matrix.y - positionCoordY, this.planetCoordinates.matrix.y + positionCoordY];
+			this.screenBoundaries.matrix = {x: xBoundries, y: yBoundries};
+			console.log(this.screenBoundaries.matrix);
 		}
 
-		checkMatrixSize() {
-			this.xSize = [Math.abs(this.positionCoord.x), (Math.abs(this.positionCoord.x))];
-			this.ySize = [Math.abs(this.positionCoord.y), (Math.abs(this.positionCoord.y))]
-		}
+		/* ----------------------------- calculating screen and matrix dimensions (END) ----------------------------- */
 
-		spawnLocation() {
-			this.globalCoord.x = Math.random() * (10 - (-10)) + (-10);
-			this.globalCoord.y = Math.random() * (10 - (-10)) + (-10);
-			console.log(this.globalCoord);
-		}
+		collision(plan) {
+			const x = this.planetCoordinates.global.x - plan.planetCoordinates.global.x;
+        	const y = this.planetCoordinates.global.y - plan.planetCoordinates.global.y;
+        	const center = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
+        	//console.log(center);
 
-		collision(center, plan) {
-			if (center < plan.properties.radius + this.properties.radius) {
-				if (this.properties.mass > plan.properties.mass) {
-					this.setScale(plan.properties.mass, '+', this);
-				} else if (this.properties.mass > plan.properties.mass) {
-					this.setScale(plan.properties.mass, '+', plan);
-				} else if (this.properties.mass === plan.properties.mass) {
-					const rand = [plan, this];
-					this.setScale(rand[Math.floor(Math.random() * 1)].properties.mass, '+', rand[Math.floor(Math.random() * 1)]);
-				}
-				if (this.planet.scale.x <= 0) {
-					this.remove();
-					delete planets[this];
-				}
-			}
-		}
-
-		shatterPlanet(num) {
-			if (planets.length < num) {
-				for (let i = 0; i < 10; i++) {
-					planets.push(new Planets(0.2, 6, 6, 0xFF3333, 1, 5));
-				}
-			}
-
-
-			console.log(planets);
 		}
 
 		gravity() {
-			let velX = 0;
-			let velY = 0;
-			let posX;
-			let posY;
-			for (let plan in planets) {
-				//const x = this.positionCoord.x - planets[plan].positionCoord.x;
-	        	//const y = this.positionCoord.y - planets[plan].positionCoord.y;
-	        	//const center = Math.sqrt(Math.pow(x, 2) + Math.pow(y, 2));
-	        	//console.log(this.velocity.x);
-				if (planets[plan] !== this && this.velocity.x < 0.01 && this.velocity.x > -0.01 && this.velocity.y < 0.01 && this.velocity.y > -0.01) {
-					posX = (planets[plan].positionCoord.x - this.positionCoord.x) * planets[plan].properties.mass;
-					posY = (planets[plan].positionCoord.y - this.positionCoord.y) * planets[plan].properties.mass;
-					velX = velX + (posX * 0.0001);
-					velY = velY + (posY * 0.0001);
+			const int = setInterval(() => {
+				let velX = 0;
+				let velY = 0;
+				let posX;
+				let posY;
+				for (let plan in planets) {
+					//this.collision(planets[plan]);
+					if (planets[plan] !== this && this.properties.velocity.x < 0.01 && this.properties.velocity.x > -0.01 && this.properties.velocity.y < 0.01 && this.properties.velocity.y > -0.01) {
+						posX = (planets[plan].planetCoordinates.global.x - this.planetCoordinates.global.x) * planets[plan].properties.mass;
+						posY = (planets[plan].planetCoordinates.global.y - this.planetCoordinates.global.y) * planets[plan].properties.mass;
+						velX = velX + (posX * 0.0001);
+						velY = velY + (posY * 0.0001);
+					}
 				}
-			}
-			this.velocity.x = velX;
-			this.velocity.y = velY;
-			console.log(posX, posY);
+				this.properties.velocity.x = velX;
+				this.properties.velocity.y = velY;
+				clearInterval(int);
+			}, 0);
+
+
 
 		}
 	}
 
-	planets.player = new Planets(0.5, 24, 24, 0xFFE933, 1, 1);
-	planets.planet1 = (new Planets(0.3, 24, 24, 0xFF3333, 1, 1));
-	planets.planet2 = (new Planets(0.7, 24, 24, 0xFF3333, 1, 10));
-	planets.planet3 = (new Planets(0.3, 24, 24, 0xFF3333, 1, 1));
+	const planetsArr = [];
+
+	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFFE933}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));		// radius, wSegments, hSegments, material, mass, composition, speed, velocity
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.5, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet1'));
+	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'planet2'));
+
+	function insertPlanetsIntoObj(insert) {
+		insert.forEach((planet) => {
+			planets[planet.planetData.id] = planet;
+		});
+	}
+	insertPlanetsIntoObj(planetsArr);
 
 	class UI {
 		constructor() {
@@ -473,13 +446,13 @@ function init() {
 		}
 
 		createCoordinatesUI() {
-			this.body.insertAdjacentHTML('afterbegin', `<div id="player-coordinates"><p>lat - ( ${planets.player.globalCoord.x} )</p><p>lng - ( ${planets.player.globalCoord.y} )</p></div>`);
+			this.body.insertAdjacentHTML('afterbegin', `<div id="player-coordinates"><p>lat - ( ${planets.player.planetCoordinates.global.x} )</p><p>lng - ( ${planets.player.planetCoordinates.global.y} )</p></div>`);
 		}
 
 		update() {
 			this.coordinatesMarker = document.querySelector('#player-coordinates');
-			this.coordinatesMarker.children[0].textContent = `lat - ( ${planets.player.globalCoord.x} )`;
-			this.coordinatesMarker.children[1].textContent = `lng - ( ${planets.player.globalCoord.y} )`;
+			this.coordinatesMarker.children[0].textContent = `lat - ( ${planets.player.planetCoordinates.global.x} )`;
+			this.coordinatesMarker.children[1].textContent = `lng - ( ${planets.player.planetCoordinates.global.y} )`;
 
 		}
 	}
@@ -507,23 +480,22 @@ function init() {
 		}
 
 		loadPlanet() {
+			planets.player.setSize();
+			planets.player.setMaterial();
 			planets.player.createPlanet();
 			planets.player.spawnLocation();
 			planets.player.render();
+			planets.player.calculateRenderBoundaries();
 			planets.player.navigationKeyboard();
-			planets.player.coordToPixels();
-			planets.player.checkMatrixSize();
 
 			for (let plan in planets) {
-				planets[plan].createPlanet();
-				planets[plan].spawnLocation();
+				if (plan !== 'player') {
+					planets[plan].setSize();
+					planets[plan].setMaterial();
+					planets[plan].createPlanet();
+					planets[plan].spawnLocation();
+				}
 			}
-
-
-
-
-			//planet2.createPlanet();
-			//planet2.spawnLocation();
 		}
 
 		loadUI() {
