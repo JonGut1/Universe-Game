@@ -11,6 +11,8 @@ function init() {
 
 		createWebGl() {
 			this.renderer = new THREE.WebGLRenderer({canvas: this.ctx, antialias: true });
+			this.renderer.shadowMap.enabled = true;
+			this.renderer.shadowMap.type = THREE.BasicShadowMap;
 		}
 
 		setCanvasSize(width, height) {
@@ -282,7 +284,6 @@ function init() {
 
 		/* ----------------------------- calculating coordinates (END) ----------------------------- */
 
-
 	}
 
 	const world = new World({x: 5000, y: 5000});
@@ -303,6 +304,7 @@ function init() {
 
 			this.geometry;					// planet geometry
 			this.material;					// planet mesh
+			this.lighting;					// planet lighting
 
 			/* planet properties */
 			this.properties = {
@@ -360,15 +362,41 @@ function init() {
 		}
 
 		/* set planets material */
-		setMaterial(color = this.properties.material.color) {
-			this.material = new THREE.MeshBasicMaterial({color: color});
+		setMaterial(type, color = this.properties.material.color) {
+			if (type === 'sun') {
+				this.material = new THREE.MeshBasicMaterial({color: color});
+				//this.material.color.multiplyScalar(2);
+			} else if (type === 'planet') {
+				this.material = new THREE.MeshLambertMaterial({color: color});
+				//this.material.color.multiplyScalar(1);
+			}
+
 		}
 
 		/* create a planet */
-		createPlanet() {
+		createPlanet(type) {
 			this.planet = new THREE.Mesh(this.geometry, this.material);
+			if (type === 'sun') {
+				this.planet.castShadow = false;
+				this.planet.receiveShadow = false;
+				this.planetData.spawned = true;
+			} else if (type === 'planet') {
+				this.planet = new THREE.Mesh(this.geometry, this.material);
+				this.planetData.spawned = true;
+				this.planet.castShadow = true;
+				this.planet.receiveShadow = true;
+			}
+
 			console.log(this.planet);
-			this.planetData.spawned = true;
+		}
+
+		createLighting() {
+			this.lighting = new THREE.PointLight(0xFEFBC0, 5, 100, 1);
+			this.lighting.castShadow = true;
+			this.lighting.position.x = 0;
+			this.lighting.position.y = 0;
+			this.lighting.position.z = 0;
+			console.log(this.lighting);
 		}
 
 		/* ----------------------------- init planet create (END) ----------------------------- */
@@ -403,6 +431,14 @@ function init() {
 		/* set planet mass */
 		setMass(amount) {
 			this.properties.mass = amount;
+		}
+
+		setLuminosity() {
+
+		}
+
+		removeLights() {
+			scene.remove(this.lighting);
 		}
 
 		/* adds speed to the planets and player */
@@ -444,7 +480,13 @@ function init() {
 		/* ----------------------------- planet render options (START) ----------------------------- */
 
 		/* render a planet */
-		render() {
+		renderPlayer() {
+			this.planet.add(this.lighting);
+			scene.add(this.planet);
+			this.planetData.rendered = true;
+		}
+
+		renderEnemy() {
 			scene.add(this.planet);
 			this.planetData.rendered = true;
 		}
@@ -456,7 +498,7 @@ function init() {
 				if (boundaries.x[0] < this.planetCoordinates.matrix.x && boundaries.x[1] > this.planetCoordinates.matrix.x && boundaries.y[0] < this.planetCoordinates.matrix.y && boundaries.y[1] > this.planetCoordinates.matrix.y) {
 					if (this.planetData.rendered === null) {
 						console.log('add...............................................');
-						this.render();
+						this.renderEnemy();
 					} else {
 						return;
 					}
@@ -486,6 +528,9 @@ function init() {
 
 		updatePlayer() {
 			this.addSpeed();
+
+			this.planet.receiveShadow = false;
+			this.planet.castShadow = false;
 
 			this.planetCoordinates.global.x += (this.properties.speed.x * world.getTime());
 			this.planetCoordinates.global.y += (this.properties.speed.y * world.getTime());
@@ -554,10 +599,10 @@ function init() {
 
 	// radius, wSegments, hSegments, material, mass, composition, speed, velocity
 
-	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xFFE933}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));
-	planetsArr.push(new Planets(0.2, 24, 24, {color: 0xFF3333}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy1'));
-	planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy2'));
-	planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy3'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0xF6B90A}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy1'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy2'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy3'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy4'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy5'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy6'));
@@ -621,19 +666,22 @@ function init() {
 
 		loadPlanet() {
 			world.planets.player.setSize();
-			world.planets.player.setMaterial();
-			world.planets.player.createPlanet();
+			world.planets.player.setMaterial('sun');
+			world.planets.player.createPlanet('sun');
+			world.planets.player.createLighting();
 			world.planets.player.spawnLocation();
-			world.planets.player.render();
+			world.planets.player.renderPlayer();
 			world.planets.player.navigationKeyboard();
+
+
 
 			world.calculateRenderBoundaries();
 
 			for (let plan in world.planets) {
 				if (plan !== 'player') {
 					world.planets[plan].setSize();
-					world.planets[plan].setMaterial();
-					world.planets[plan].createPlanet();
+					world.planets[plan].setMaterial('planet');
+					world.planets[plan].createPlanet('planet');
 					world.planets[plan].spawnLocation();
 				}
 			}
@@ -664,9 +712,9 @@ function init() {
 
 			for (let plan in world.planets) {
 				if (plan !== 'player') {
-					world.planets[plan].updatePlanet(world.planets[plan]);
+					world.planets[plan].updatePlanet();
 				} else {
-					world.planets[plan].updatePlayer(world.planets[plan]);
+					world.planets[plan].updatePlayer();
 				}
 				world.gravity(world.planets[plan]);
 				world.collision(world.planets[plan]);
