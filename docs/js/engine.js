@@ -804,7 +804,7 @@
 		}
 
 		loadCamera() {
-			camera.setCameraProp('position', 'setZ', (20));
+			camera.setCameraProp('position', 'setZ', (40));
 		}
 
 		loadPlanet() {
