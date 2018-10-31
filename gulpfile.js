@@ -34,6 +34,14 @@ gulp.task('scripts', function(done) {
 	done()
 });
 
+gulp.task('build', function() {
+    return gulp.src('src/**/*.js')
+        .pipe(transpile({
+            formatter: 'bundle'
+        }))
+        .pipe(gulp.dest('dist'));
+})
+
 gulp.task('copy-html', function(done) {
 	gulp.src('src/*.html')
 	.pipe(gulp.dest('dist'))

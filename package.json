@@ -9,14 +9,13 @@
   "author": "Jonas",
   "license": "ISC",
   "devDependencies": {
-    "gulp": "^4.0.0",
     "browser-sync": "^2.24.4",
+    "gulp": "^4.0.0",
+    "gulp-autoprefixer": "^5.0.0",
     "gulp-sass": "^4.0.1",
-    "gulp-watch": "^5.0.0",
-    "gulp-autoprefixer": "^5.0.0"
+    "gulp-watch": "^5.0.0"
   },
   "dependencies": {
-    "gulp-es6-module-transpiler": "^0.2.2",
     "three": "^0.97.0"
   }
 }

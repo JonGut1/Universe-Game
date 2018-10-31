@@ -1,5 +1,4 @@
-function init() {
-
+(function init() {
 	const planets = {};
 
 	/* renders canvas */
@@ -13,6 +12,9 @@ function init() {
 			this.renderer = new THREE.WebGLRenderer({canvas: this.ctx, antialias: true });
 			this.renderer.shadowMap.enabled = true;
 			this.renderer.shadowMap.type = THREE.BasicShadowMap;
+			//this.renderer.toneMapping = THREE.ReinhardToneMapping;
+			this.renderer.autoClear = false;
+
 		}
 
 		setCanvasSize(width, height) {
@@ -41,16 +43,15 @@ function init() {
 	class Scene {
 		constructor() {
 			this.scene;
+			this.texture;
 		}
 
 		createScene() {
 			this.scene = new THREE.Scene();
 		}
 
-		setSceneBackground(color) {
-			if (color) {
-				this.scene.background = new THREE.Color(color);
-			}
+		setSceneBackground() {
+			this.scene.background = this.texture;
 		}
 
 		add(obj) {
@@ -66,7 +67,16 @@ function init() {
 		}
 
 		update() {
+			//console.log(this.texture);
+			//this.texture.offset.x += 0.01;
+		}
 
+		texture() {
+			//this.texture = new THREE.TextureLoader().load( "textures/background.jpg" );
+			//this.texture.wrapS = THREE.RepeatWrapping;
+			//this.texture.wrapT = THREE.RepeatWrapping;
+			//this.texture.repeat.set( 2, 1 );
+			console.log(this.texture);
 		}
 
 	}
@@ -109,6 +119,7 @@ function init() {
 				}
 			};
 			this.screenBoundaries = {};
+			this.ambientLight;
 		}
 
 		time(time) {
@@ -128,6 +139,11 @@ function init() {
 				this.centerCoordinates.global = coord;
 				this.globalCoordToMatrixCoord(coord.x, coord.y);
 			}
+		}
+
+		createGlobalLighting() {
+			this.ambientLight = new THREE.AmbientLight( 0x404040 );
+			scene.add(this.ambientLight);
 		}
 
 		/* ----------------------------- gravity (START) ----------------------------- */
@@ -284,19 +300,31 @@ function init() {
 
 		/* ----------------------------- calculating coordinates (END) ----------------------------- */
 
+		/* ----------------------------- player navigation controlls (START) ----------------------------- */
+
+		assignNavigationControlls(type) {
+			this.planets[type].navigationKeyboard();
+		}
+
+		/* ----------------------------- player navigation controlls (END) ----------------------------- */
 	}
 
 	const world = new World({x: 5000, y: 5000});
 
 	/* planets */
 	class Planets {
-		constructor(radius, wSegments, hSegments, material, mass, composition, speed, velocity, id) {
+		constructor(radius, wSegments, hSegments, material, mass, composition, speed, velocity, id, type) {
 			this.planet;					// created planet
+
+			this.fog;
+			this.composer;
+			this.OCCLUSION_LAYER = 1;
+			this.DEFAULT_LAYER = 0;
 
 			/* planet data */
 			this.planetData = {
 				id: id,
-				type: id.startsWith('p') ? 'player' : 'enemy',
+				type: type,
 				rendered: null,
 				spawned: null,
 				removed: null,
@@ -305,6 +333,8 @@ function init() {
 			this.geometry;					// planet geometry
 			this.material;					// planet mesh
 			this.lighting;					// planet lighting
+			this.texturesLoader;			// textures loader
+			this.texture = [];					// planet textures
 
 			/* planet properties */
 			this.properties = {
@@ -364,8 +394,9 @@ function init() {
 		/* set planets material */
 		setMaterial(type, color = this.properties.material.color) {
 			if (type === 'sun') {
-				this.material = new THREE.MeshBasicMaterial({color: color});
-				//this.material.color.multiplyScalar(2);
+				this.material = new THREE.MeshBasicMaterial({color: 0xFFF99F});
+				console.log(this.material.alphaMap);
+				//this.material.color.multiplyScalar(1.2);
 			} else if (type === 'planet') {
 				this.material = new THREE.MeshLambertMaterial({color: color});
 				//this.material.color.multiplyScalar(1);
@@ -376,26 +407,66 @@ function init() {
 		/* create a planet */
 		createPlanet(type) {
 			this.planet = new THREE.Mesh(this.geometry, this.material);
-			if (type === 'sun') {
-				this.planet.castShadow = false;
-				this.planet.receiveShadow = false;
-				this.planetData.spawned = true;
-			} else if (type === 'planet') {
-				this.planet = new THREE.Mesh(this.geometry, this.material);
-				this.planetData.spawned = true;
-				this.planet.castShadow = true;
-				this.planet.receiveShadow = true;
-			}
+			//this.planet.layers.set( this.OCCLUSION_LAYER );
 
-			console.log(this.planet);
+			if (type === 'sun') {
+				this.planet.layers.enable(1);
+				//this.planet.castShadow = false;
+				//this.planet.receiveShadow = false;
+				this.planetData.spawned = true;
+				//this.planet.add(this.lighting);
+				//this.planet.scale.x = -1;
+				//this.planet.scale.y = -1;
+				//this.planet.scale.z = -1;
+			} else if (type === 'planet') {
+				this.planet.layers.enable(0);
+				//this.planet = new THREE.Mesh(this.geometry, this.material);
+				//this.planetData.spawned = true;
+				//this.planet.castShadow = true;
+				//this.planet.receiveShadow = true;
+			}
+		}
+
+		createTexture() {
+		}
+
+		testing() {
+			var renderScene = new THREE.RenderPass( scene.scene, camera.camera );
+			var bloomPass = new THREE.UnrealBloomPass( new THREE.Vector2( window.innerWidth, window.innerHeight ), 1.5, 0.4, 0.85 );
+			bloomPass.renderToScreen = true;
+			bloomPass.threshold = 0;
+			bloomPass.strength = 1;
+			bloomPass.radius = -1.5;
+			this.composer = new THREE.EffectComposer( renderer.renderer );
+			this.composer.setSize( window.innerWidth, window.innerHeight );
+			this.composer.addPass( renderScene );
+			this.composer.addPass( bloomPass );
+
+			this.composer.render();
+
+			console.log(this.composer);
+		}
+
+		testingUpdate() {
+
+			renderer.renderer.clear();
+			camera.camera.layers.set(1);
+
+			this.composer.render();
+
+			renderer.renderer.clearDepth();
+			camera.camera.layers.set(0);
+
 		}
 
 		createLighting() {
-			this.lighting = new THREE.PointLight(0xFEFBC0, 5, 100, 1);
-			this.lighting.castShadow = true;
+			this.lighting = new THREE.PointLight(0xffffff, 4, 100, 3);
+
+			//this.lighting.castShadow = true;
 			this.lighting.position.x = 0;
 			this.lighting.position.y = 0;
 			this.lighting.position.z = 0;
+			scene.add(this.lighting);
 			console.log(this.lighting);
 		}
 
@@ -480,13 +551,7 @@ function init() {
 		/* ----------------------------- planet render options (START) ----------------------------- */
 
 		/* render a planet */
-		renderPlayer() {
-			this.planet.add(this.lighting);
-			scene.add(this.planet);
-			this.planetData.rendered = true;
-		}
-
-		renderEnemy() {
+		render() {
 			scene.add(this.planet);
 			this.planetData.rendered = true;
 		}
@@ -498,7 +563,7 @@ function init() {
 				if (boundaries.x[0] < this.planetCoordinates.matrix.x && boundaries.x[1] > this.planetCoordinates.matrix.x && boundaries.y[0] < this.planetCoordinates.matrix.y && boundaries.y[1] > this.planetCoordinates.matrix.y) {
 					if (this.planetData.rendered === null) {
 						console.log('add...............................................');
-						this.renderEnemy();
+						this.render();
 					} else {
 						return;
 					}
@@ -526,21 +591,7 @@ function init() {
 
 		/* ----------------------------- in animation loop functions (START) ----------------------------- */
 
-		updatePlayer() {
-			this.addSpeed();
-
-			this.planet.receiveShadow = false;
-			this.planet.castShadow = false;
-
-			this.planetCoordinates.global.x += (this.properties.speed.x * world.getTime());
-			this.planetCoordinates.global.y += (this.properties.speed.y * world.getTime());
-
-			world.addPlanetsCoordinates(this);
-			world.addMatrixCenterCoord(this.planetCoordinates.global);
-
-		}
-
-		updatePlanet() {
+		update() {
 			this.addSpeed();
 
 			this.planetCoordinates.global.x += (this.properties.speed.x * world.getTime());
@@ -548,11 +599,18 @@ function init() {
 
 			this.planetCoordinates.matrix = world.globalCoordToMatrixCoord(this.planetCoordinates.global.x, this.planetCoordinates.global.y);
 
-			this.setPosition();
-
 			world.addPlanetsCoordinates(this);
 
-			this.renderCheck();
+			if (this.planetData.id.startsWith('p')) {
+				world.addMatrixCenterCoord(this.planetCoordinates.global);
+				this.planet.rotation.y += 0.01;
+				this.planet.rotation.z += -0.01;
+			}
+
+			if (this.planetData.id.startsWith('e')) {
+				this.setPosition();
+				this.renderCheck();
+			}
 		}
 
 		/* ----------------------------- in animation loop functions (END) ----------------------------- */
@@ -562,18 +620,20 @@ function init() {
 		navigationKeyboard() {
 			const body =  document.querySelector('body');
 			body.addEventListener('keydown', (e) => {
-				if (e.keyCode === 37) {
-					this.keyboardNavigation.pressedKeys[37] = true;
-				}
-				if (e.keyCode === 38) {
-					this.keyboardNavigation.pressedKeys[38] = true;
-				}
-				if (e.keyCode === 39) {
-					this.keyboardNavigation.pressedKeys[39] = true;
-				}
-				if (e.keyCode === 40) {
-					this.keyboardNavigation.pressedKeys[40] = true;
-				}
+				const int = setTimeout(() => {
+					if (e.keyCode === 37) {
+						this.keyboardNavigation.pressedKeys[37] = true;
+					}
+					if (e.keyCode === 38) {
+						this.keyboardNavigation.pressedKeys[38] = true;
+					}
+					if (e.keyCode === 39) {
+						this.keyboardNavigation.pressedKeys[39] = true;
+					}
+					if (e.keyCode === 40) {
+						this.keyboardNavigation.pressedKeys[40] = true;
+					}
+				},100);
 			});
 
 			body.addEventListener('keyup', (e) => {
@@ -599,10 +659,10 @@ function init() {
 
 	// radius, wSegments, hSegments, material, mass, composition, speed, velocity
 
-	planetsArr.push(new Planets(1, 24, 24, {color: 0xF6B90A}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player'));
-	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy1'));
-	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy2'));
-	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy3'));
+	planetsArr.push(new Planets(2, 24, 24, {color: 0xF6B90A}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player', 'sun'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy1', 'planet'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy2', 'planet'));
+	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy3', 'planet'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy4'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy5'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy6'));
@@ -657,7 +717,8 @@ function init() {
 
 		loadScene() {
 			scene.createScene();
-			scene.setSceneBackground(0x000000);
+			scene.texture();
+			scene.setSceneBackground();
 		}
 
 		loadCamera() {
@@ -665,26 +726,28 @@ function init() {
 		}
 
 		loadPlanet() {
-			world.planets.player.setSize();
-			world.planets.player.setMaterial('sun');
-			world.planets.player.createPlanet('sun');
 			world.planets.player.createLighting();
-			world.planets.player.spawnLocation();
-			world.planets.player.renderPlayer();
-			world.planets.player.navigationKeyboard();
+			world.planets.player.createTexture();
+
 
 
 
 			world.calculateRenderBoundaries();
+			world.createGlobalLighting();
 
 			for (let plan in world.planets) {
-				if (plan !== 'player') {
-					world.planets[plan].setSize();
-					world.planets[plan].setMaterial('planet');
-					world.planets[plan].createPlanet('planet');
-					world.planets[plan].spawnLocation();
-				}
+				world.planets[plan].setSize();
+				world.planets[plan].setMaterial(world.planets[plan].planetData.type);
+				world.planets[plan].createPlanet(world.planets[plan].planetData.type);
+				world.planets[plan].spawnLocation();
+				world.planets[plan].renderCheck();
 			}
+
+			world.planets.player.testing();
+		}
+
+		loadNavigationControls() {
+			world.assignNavigationControlls('player');
 		}
 
 		loadUI() {
@@ -708,17 +771,19 @@ function init() {
 
 			requestAnimationFrame(animate.play);
 
-			renderer.render(scene.render(), camera.render());
-
 			for (let plan in world.planets) {
-				if (plan !== 'player') {
-					world.planets[plan].updatePlanet();
-				} else {
-					world.planets[plan].updatePlayer();
-				}
+				world.planets[plan].update();
 				world.gravity(world.planets[plan]);
 				world.collision(world.planets[plan]);
 			}
+
+			world.planets.player.testingUpdate();
+
+			renderer.render(scene.render(), camera.render());
+
+			scene.update();
+			scene.setSceneBackground();
+
 
 			ui.update();
 
@@ -736,10 +801,11 @@ function init() {
 	loader.loadScene();
 	loader.loadCamera();
 	loader.loadPlanet();
+	loader.loadNavigationControls();
 	loader.loadUI();
 
 	animate.play();
 
 
 	console.log('Page loaded......');
-}
+}());
