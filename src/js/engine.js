@@ -109,18 +109,25 @@
 
 	class World {
 		constructor(size) {
-			this.world = size;
-			this.dt = 1;
-			this.planets = {};
-			this.centerCoordinates = {
+			this.test = {
 				global: {
 					x: 0,
 					y: 0,
 				}
-			};
+			}
+			this.world = size;
+			this.dt = 1;
+			this.planets = {};
+
 			this.screenBoundaries = {};
 			this.ambientLight;
 			this.controlls = 'touch';
+		}
+
+		addTest(glob) {
+			if (glob !== undefined) {
+				this.test = glob;
+			}
 		}
 
 		time(time) {
@@ -135,10 +142,9 @@
 			this.planets[obj.planetData.id] = obj;
 		}
 
-		addMatrixCenterCoord(coord) {
+		addGlobalCenterCoord(coord) {
 			if (coord) {
 				this.centerCoordinates.global = coord;
-				this.globalCoordToMatrixCoord(coord.x, coord.y);
 			}
 		}
 
@@ -183,6 +189,14 @@
 				const velY = vel.y + (posY * 0.0001);
 				return {x: velX, y: velY};
 			}
+		}
+
+		calculateZeroVelocity(objLocal, objExt, vel) {
+			const posX = (objExt.x - objLocal.x);
+			const posY = (objExt.y - objLocal.y);
+			const velX = (posX * vel.x);
+			const velY = (posY * vel.y);
+			return {x: velX, y: velY};
 		}
 
 		calculateNavigationVelocity(objLocal, objExt, vel) {
@@ -286,14 +300,14 @@
 		}
 
 		globalCoordToMatrixCoord(coordX, coordY) {
-			const x = coordX - this.centerCoordinates.global.x;
-			const y = coordY - this.centerCoordinates.global.y;
+			const x = coordX - this.test.global.x;
+			const y = coordY - this.test.global.y;
 			return {x: x, y: y};
 		}
 
 		matrixCoordToGlobalCoord(coordX, coordY) {
-			const x = coordX + this.centerCoordinates.global.x;
-			const y = coordY + this.centerCoordinates.global.y;
+			const x = coordX + this.test.global.x;
+			const y = coordY + this.test.global.y;
 			return {x: x, y: y};
 		}
 
@@ -414,6 +428,14 @@
 					}
 				}
 			}
+
+			this.initFromSide;
+			this.initFromTop;
+			this.joyStickRadius;
+			this.maxX;
+			this.maxY;
+			this.prevPosX;
+			this.prevPosY;
 		}
 
 		/* ----------------------------- init planet create (START) ----------------------------- */
@@ -426,7 +448,7 @@
 		/* set planets material */
 		setMaterial(type, color = this.properties.material.color) {
 			if (type === 'sun') {
-				this.material = new THREE.MeshBasicMaterial({color: 0xFFFFFF});
+				this.material = new THREE.MeshBasicMaterial({color: 0xFF5D32});
 				console.log(this.material.alphaMap);
 				//this.material.color.multiplyScalar(1.4);
 			} else if (type === 'planet') {
@@ -467,8 +489,8 @@
 			const bloomPass = new THREE.UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
 			bloomPass.renderToScreen = true;
 			bloomPass.threshold = 0;
-			bloomPass.strength = 2;
-			bloomPass.radius = -1;
+			bloomPass.strength = 0.8;
+			bloomPass.radius = 0;
 			this.composer = new THREE.EffectComposer(renderer.renderer);
 			this.composer.setSize(window.innerWidth, window.innerHeight);
 			this.composer.addPass(renderScene);
@@ -546,27 +568,26 @@
 
 		/* adds speed to the planets and player */
 		addSpeed(controlls) {
-			console.log(controlls);
 			if (controlls === 'keyboard') {
 				/* arrow navigation */
-				if (this.keyboardNavigation.pressedKeys[37]) {
-					if (this.properties.speed.x > -0.1) {
-						this.properties.speed.x -= 0.005;
+				if (this.keyboardNavigation.pressedKeys[37] === true) {
+					if (this.properties.speed.x > -0.01) {
+						this.properties.speed.x -= 0.0001;
 					}
 				}
-				if (this.keyboardNavigation.pressedKeys[38]) {
-					if (this.properties.speed.y < 0.1) {
-						this.properties.speed.y += 0.005;
+				if (this.keyboardNavigation.pressedKeys[38] === true) {
+					if (this.properties.speed.y < 0.01) {
+						this.properties.speed.y += 0.0001;
 					}
 				}
-				if (this.keyboardNavigation.pressedKeys[39]) {
-					if (this.properties.speed.x < 0.1) {
-						this.properties.speed.x += 0.005;
+				if (this.keyboardNavigation.pressedKeys[39] === true) {
+					if (this.properties.speed.x < 0.01) {
+						this.properties.speed.x += 0.0001;
 					}
 				}
-				if (this.keyboardNavigation.pressedKeys[40]) {
-					if (this.properties.speed.y > -0.1) {
-						this.properties.speed.y -= 0.005;
+				if (this.keyboardNavigation.pressedKeys[40] === true) {
+					if (this.properties.speed.y > -0.01) {
+						this.properties.speed.y -= 0.0001;
 					}
 				}
 			} else if (controlls === 'touch') {
@@ -579,8 +600,8 @@
 		}
 
 		spawnLocation() {
-			this.planetCoordinates.global.x = Math.random() * (20 - (-20)) + (-20);
-			this.planetCoordinates.global.y = Math.random() * (20 - (-20)) + (-20);
+			this.planetCoordinates.global.x = Math.random() * (10 - (-10)) + (-10);
+			this.planetCoordinates.global.y = Math.random() * (10 - (-10)) + (-10);
 			console.log(this.planetCoordinates);
 		}
 
@@ -638,16 +659,15 @@
 			this.planetCoordinates.matrix = world.globalCoordToMatrixCoord(this.planetCoordinates.global.x, this.planetCoordinates.global.y);
 
 			world.addPlanetsCoordinates(this);
-
 			if (this.planetData.id.startsWith('p')) {
-				world.addMatrixCenterCoord(this.planetCoordinates.global);
+				this.addGlobalScreenCenter();
 				this.setTouchMovement();
 			}
 
 			if (this.planetData.id.startsWith('e')) {
-				this.setPosition();
 				this.renderCheck();
 			}
+			this.setPosition();
 		}
 
 		/* ----------------------------- in animation loop functions (END) ----------------------------- */
@@ -657,23 +677,22 @@
 		navigationKeyboard() {
 			const body =  document.querySelector('body');
 			body.addEventListener('keydown', (e) => {
-				const int = setTimeout(() => {
-					if (e.keyCode === 37) {
-						this.keyboardNavigation.pressedKeys[37] = true;
-					}
-					if (e.keyCode === 38) {
-						this.keyboardNavigation.pressedKeys[38] = true;
-					}
-					if (e.keyCode === 39) {
-						this.keyboardNavigation.pressedKeys[39] = true;
-					}
-					if (e.keyCode === 40) {
-						this.keyboardNavigation.pressedKeys[40] = true;
-					}
-				},100);
+				if (e.keyCode === 37) {
+					this.keyboardNavigation.pressedKeys[37] = true;
+				}
+				if (e.keyCode === 38) {
+					this.keyboardNavigation.pressedKeys[38] = true;
+				}
+				if (e.keyCode === 39) {
+					this.keyboardNavigation.pressedKeys[39] = true;
+				}
+				if (e.keyCode === 40) {
+					this.keyboardNavigation.pressedKeys[40] = true;
+				}
 			});
 
 			body.addEventListener('keyup', (e) => {
+				console.log(this.keyboardNavigation.pressedKeys);
 				if (e.keyCode === 37) {
 					this.keyboardNavigation.pressedKeys[37] = null;
 				}
@@ -686,52 +705,88 @@
 				if (e.keyCode === 40) {
 					this.keyboardNavigation.pressedKeys[40] = null;
 				}
+				console.log(this.keyboardNavigation.pressedKeys);
 			});
 		}
 
 		navigationScreen() {
-			const canvas = document.querySelector('#main-canvas');
-			canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
-			canvas.addEventListener('touchmove', this.handleTouchMove.bind(this));
-			canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
+			const body = document.querySelector('body');
+			body.insertAdjacentHTML('afterbegin', `<div id="joyStick"><div id="joyStick-controller"></div></div>`);
+
+			const controller = document.querySelector('#joyStick-controller');
+			controller.addEventListener('touchstart', this.handleTouchStart.bind(this));
+			controller.addEventListener('touchmove', this.handleTouchMove.bind(this));
+			controller.addEventListener('touchend', this.handleTouchEnd.bind(this));
 		}
 
 		handleTouchStart(e) {
 			e.preventDefault();
-			this.screenNavigation.pressed.touchStart = true;
-			this.screenNavigation.pressed.touchEnd = null;
-			this.screenNavigation.coord.last.x = e.touches[0].clientX;
-			this.screenNavigation.coord.last.y = e.touches[0].clientY;
+			this.joyStickRadius = e.target.clientHeight / 1.5;
+			this.initFromSide = window.innerWidth - (window.innerWidth - (e.touches[0].clientX));
+			this.initFromTop = window.innerHeight - (window.innerHeight - (e.touches[0].clientY));
+			console.log('start');
 		}
 
 		handleTouchMove(e) {
 			e.preventDefault();
-			this.screenNavigation.pressed.touchMove = true;
-			this.screenNavigation.pressed.touchEnd = null;
-			this.screenNavigation.coord.last.x = e.touches[0].clientX;
-			this.screenNavigation.coord.last.y = e.touches[0].clientY;
+			const distanceFromSide = window.innerWidth - (window.innerWidth - (e.touches[0].clientX));
+			const distanceFromTop = window.innerHeight - (window.innerHeight - (e.touches[0].clientY));
+
+			let moveDistX = distanceFromSide - this.initFromSide;
+			let moveDistY = distanceFromTop - this.initFromTop;
+
+			const moveRadius = Math.sqrt((moveDistY * moveDistY) + (moveDistX * moveDistX));
+			console.log(moveRadius, this.joyStickRadius);
+
+			if (moveRadius > this.joyStickRadius) {
+				const timesLess = moveRadius / this.joyStickRadius;
+				const x = moveDistX / timesLess;
+				const y = moveDistY / timesLess;
+				moveDistX = x;
+				moveDistY = y;
+			}
+			e.target.style.transform = `translate(${moveDistX}px, ${moveDistY}px)`;
+
+			this.properties.touchVelocity.x = (moveDistX * 0.00001);
+			this.properties.touchVelocity.y = -(moveDistY * 0.00001);
 		}
 
 		handleTouchEnd(e) {
-			e.preventDefault();
-			this.screenNavigation.pressed.touchStart = null;
-			this.screenNavigation.pressed.touchMove = null;
-			this.screenNavigation.pressed.touchEnd = true;
+			e.target.style.transform = `translate(0px, 0px)`;
+			console.log('end');
 		}
 
 		setTouchMovement() {
-			if (this.screenNavigation.pressed.touchEnd === null && this.screenNavigation.pressed.touchMove === true || this.screenNavigation.pressed.touchStart === true) {
-				setTimeout(() => {
-					const xPixels = this.screenNavigation.coord.last.x;
-					const yPixels = this.screenNavigation.coord.last.y;
 
-					const matrixCoord = world.pixelsToMatrix(xPixels, yPixels, 0.9);
-					const globalCoord = world.matrixCoordToGlobalCoord(matrixCoord.x, matrixCoord.y, 0.9);
-					const velocity = world.calculateNavigationVelocity(this.planetCoordinates.global, globalCoord, this.properties.velocity);
-					console.log(velocity);
-					this.properties.touchVelocity = velocity;
-				}, 100);
+		}
+
+		addGlobalScreenCenter() {
+			const glo = {
+				global: {
+					x: world.test.global.x,
+					y: world.test.global.y,
+				},
 			}
+			const radius = world.distanceBetweenObjects({x: this.planetCoordinates.global.x, y: this.planetCoordinates.global.y}, {x: world.test.global.x, y: world.test.global.y}, 'global');
+			if (world.test.global.x === 0 && world.test.global.y === 0 && this.planetCoordinates.global.x !== 0 && this.planetCoordinates.global.y !== 0) {
+				const gl = {
+					global: {
+						x: this.planetCoordinates.global.x,
+						y: this.planetCoordinates.global.y,
+					}
+				}
+				world.addTest(gl);
+			}
+
+			if (radius <= 0.5) {
+				glo.global.x = world.test.global.x + (this.properties.speed.x * world.getTime()) / 1.002;
+				glo.global.y = world.test.global.y + (this.properties.speed.y * world.getTime()) / 1.002;
+			} else if (radius > 0.5) {
+				glo.global.x = world.test.global.x + (this.properties.speed.x * world.getTime());
+				glo.global.y = world.test.global.y + (this.properties.speed.y * world.getTime());
+			}
+
+			world.addTest(glo);
 		}
 
 		/* ----------------------------- player navigation controlls (END) ----------------------------- */
@@ -741,11 +796,11 @@
 
 	// radius, wSegments, hSegments, material, mass, composition, speed, velocity
 
-	planetsArr.push(new Planets(2, 24, 24, {color: 0xF6B90A}, 0.4, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player', 'sun'));
-	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy1', 'planet'));
-	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy2', 'planet'));
-	planetsArr.push(new Planets(1, 24, 24, {color: 0x9B631C}, 0.2, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy3', 'planet'));
-	planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy4', 'planet'));
+	planetsArr.push(new Planets(0.5, 24, 24, {color: 0xF6B90A}, 0.07, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'player', 'sun'));
+	planetsArr.push(new Planets(0.2, 12, 12, {color: 0x9B631C}, 0.03, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy1', 'planet'));
+	planetsArr.push(new Planets(0.1, 12, 12, {color: 0x9B631C}, 0.03, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy2', 'planet'));
+	planetsArr.push(new Planets(0.1, 12, 12, {color: 0x9B631C}, 0.02, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy3', 'planet'));
+	planetsArr.push(new Planets(0.3, 12, 12, {color: 0xFF3333}, 0.05, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy4', 'planet'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy5'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy6'));
 	//planetsArr.push(new Planets(0.3, 24, 24, {color: 0xFF3333}, 0.1, {}, {x: 0, y: 0}, {x: 0, y: 0}, 'enemy7'));
@@ -773,13 +828,13 @@
 		}
 
 		createCoordinatesUI() {
-			this.body.insertAdjacentHTML('afterbegin', `<div id="player-coordinates"><p>lat - ( ${world.centerCoordinates.global.x} )</p><p>lng - ( ${world.centerCoordinates.global.y} )</p></div>`);
+			this.body.insertAdjacentHTML('afterbegin', `<div id="player-coordinates"><p>lat - ( ${world.test.global.x} )</p><p>lng - ( ${world.test.global.y} )</p></div>`);
 		}
 
 		update() {
 			this.coordinatesMarker = document.querySelector('#player-coordinates');
-			this.coordinatesMarker.children[0].textContent = `lat - ( ${world.centerCoordinates.global.x} )`;
-			this.coordinatesMarker.children[1].textContent = `lng - ( ${world.centerCoordinates.global.y} )`;
+			this.coordinatesMarker.children[0].textContent = `lat - ( ${world.test.global.x} )`;
+			this.coordinatesMarker.children[1].textContent = `lng - ( ${world.test.global.y} )`;
 
 		}
 	}
@@ -804,7 +859,7 @@
 		}
 
 		loadCamera() {
-			camera.setCameraProp('position', 'setZ', (40));
+			camera.setCameraProp('position', 'setZ', (7));
 		}
 
 		loadPlanet() {
@@ -852,8 +907,6 @@
 			animate.dt = (now - animate.last) / 1000.0;
             world.getTime(now);
 
-			requestAnimationFrame(animate.play);
-
 			for (let plan in world.planets) {
 				world.planets[plan].update();
 				world.gravity(world.planets[plan]);
@@ -871,6 +924,7 @@
 			ui.update();
 
 			animate.last = now;
+			requestAnimationFrame(animate.play);
 		}
 
 		stopPlay() {

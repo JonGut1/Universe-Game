@@ -15,3 +15,28 @@ canvas {
 	top: 5%;
 	left: 5%;
 }
+
+#joyStick {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	position: fixed;
+	z-index: 5;
+	left: 5%;
+	bottom: 5%;
+	width: 20vw;
+	height: 20vw;
+	background-color: rgba(255,255,255,0.7);
+	border-radius: 50px;
+
+	div {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		width: 50%;
+		height: 50%;
+		background-color: rgba(0,0,0,0.8);
+		border-radius: 50px;
+		box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.8);
+	}
+}
